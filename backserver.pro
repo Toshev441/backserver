@@ -18,7 +18,7 @@ INCLUDEPATH += \
 
 win32{
     LIBS += -LC:/Qt/Tools/OpenSSL/Win_x64/lib -llibssl -llibcrypto
-    INCLUDEPATH += C:/Qt/Tools/OpenSSL/Win_x64/include/
+    INCLUDEPATH += $$(QTDIR)/Tools/OpenSSL/Win_x64/include/
 }
 osx{
     LIBS += -L/usr/local/opt/openssl/lib -L/usr/local/lib
