@@ -7,28 +7,23 @@
 #include <QTcpServer>
 #include <QSettings>
 
-
-
-class BackTcpServer : public QTcpServer
+class BackTcpServer : public QThread
 {
     Q_OBJECT
 public:
-    BackTcpServer(QSqlDatabase *db, QSettings *settings, QObject *parent = 0);
-    void start();
+    explicit BackTcpServer(QSqlDatabase *db, QSettings *settings, QObject *parent = 0);
+
 private:
+    void run();
     QSqlDatabase *db;
     QTcpServer *tcpServer;
     QSettings *settings;
     QHostAddress host;
     quint16 port;
     QMap<int,CryptedTcpSocket *> SClients;
-protected:
-        void incomingConnection(qintptr socketDescriptor);
-
 private slots:
+        void onConnect();
         void onDisconnect(qintptr ID);
-public slots:
-
 };
 
 #endif // BACKTCPSERVER_H

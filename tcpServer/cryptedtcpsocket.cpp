@@ -16,6 +16,7 @@ void CryptedTcpSocket::run()
     if(!socket->setSocketDescriptor(this->socketDescriptor))
     {
         emit error(socket->error());
+        socket->deleteLater();
         return;
     }
     qInfo() << "connect tcp client: " << this->socketDescriptor;
@@ -57,6 +58,7 @@ void CryptedTcpSocket::readyRead()
             if(arr.count() == 0){
                 db->checkError(true);
                 socket->close();
+                socket->deleteLater();
                 return;
             }
             knowClient = true;

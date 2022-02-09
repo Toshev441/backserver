@@ -63,3 +63,4 @@ HEADERS += \
     tcpServer/backtcpserver.h \
     tcpServer/cryptedtcpsocket.h
 
+#QMAKE_POST_LINK += $$(QTDIR)/bin/windeployqt $$OUT_PWD/release --compiler-runtime --qmldir $$PWD $$escape_expand(\n\t)

@@ -5,7 +5,7 @@
 #include <QThread>
 #include <QFile>
 
-HttpsServer::HttpsServer(QSqlDatabase *db, QSettings *settings, QObject *parent) : QTcpServer(parent)
+HttpsServer::HttpsServer(QSqlDatabase *db, QSettings *settings, QObject *parent) :  QThread(parent)
 {
     this->db = db;
     this->settings = settings;
@@ -13,39 +13,41 @@ HttpsServer::HttpsServer(QSqlDatabase *db, QSettings *settings, QObject *parent)
     updateSslTimer.start(1000*60*60);
 }
 
-void HttpsServer::start()
+void HttpsServer::run()
 {
+    tcpServer = new QTcpServer();
     while (1) {
         host = QHostAddress(settings->value("httpsserver/host", "127.0.0.1").toString());
-        port = settings->value("httpsserver/port", 80).toUInt();
-        if(this->listen(host, port))
+        port = settings->value("httpsserver/port", 8080).toUInt();
+        if(tcpServer->listen(host, port))
             break;
         qCritical() << QString("Unable to start the httpsServer: %1.").arg(tcpServer->errorString());
         QThread::sleep(3);
     }
+    connect(tcpServer, SIGNAL(newConnection()), this, SLOT(onConnect()));
+    connect(this, SIGNAL(finished()), tcpServer, SLOT(deleteLater()));
     updateSsl();
     qInfo() << " ----------httpsServer started-------------\n" <<
                "\thost: " << host.toString() << "\n" <<
                "\tport: " << port << "\n" <<
                "\tssl ready: " << (sslReady ? "true":"false") << "\n" <<
                "------------------------------------------";
+    exec();
 }
 
-void HttpsServer::incomingConnection(qintptr socketDescriptor)
+void HttpsServer::onConnect()
 {
+    QTcpSocket *socket = tcpServer->nextPendingConnection();
+    qintptr ID = socket->socketDescriptor();
     if(waitSslUpdate(3000)){
-        HttpsClient *client = new HttpsClient(socketDescriptor, db, &sslConf, this);
+        HttpsClient *client = new HttpsClient(ID, db, &sslConf, this);
         connect(client, SIGNAL(finished()), client, SLOT(deleteLater()));
         connect(client, &HttpsClient::disconnect, this, &HttpsServer::onDisconnect, Qt::QueuedConnection);
-        clients[socketDescriptor] = client;
+        clients[ID] = client;
         client->start();
     }
     else
-    {
-        QSslSocket socket;
-        if(socket.setSocketDescriptor(socketDescriptor))
-            socket.close();
-    }
+         socket->close();
 }
 
 void HttpsServer::onDisconnect(quint64 ID)

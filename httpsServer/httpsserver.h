@@ -8,13 +8,13 @@
 #include "httpsclient.h"
 #include "QTimer"
 
-class HttpsServer : public QTcpServer
+class HttpsServer : public QThread
 {
     Q_OBJECT
 public:
     explicit HttpsServer(QSqlDatabase *db, QSettings *settings, QObject *parent = 0);
-    void start();
 private:
+    void run();
     QSqlDatabase *db;
     QTcpServer *tcpServer;
     QSettings *settings;
@@ -28,15 +28,11 @@ private:
     bool sslReady = false;
     QTimer updateSslTimer;
     bool waitSslUpdate(uint ms);
-protected:
-        void incomingConnection(qintptr socketDescriptor);
 
 private slots:
-        void onDisconnect(quint64 ID);
-        void updateSsl();
-public slots:
-
-
+    void onConnect();
+    void onDisconnect(quint64 ID);
+    void updateSsl();
 };
 
 #endif // HTTPSSERVER_H

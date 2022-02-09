@@ -35,20 +35,14 @@ int main(int argc, char *argv[])
                                        QCoreApplication::applicationDirPath() + s + "dbscript.sql");
 
     BackTcpServer tcpServer(db, &settings);
-    QThread tcpServerThread;
-    tcpServer.moveToThread(&tcpServerThread);
-    QObject::connect(&app, SIGNAL(aboutToQuit()), &tcpServerThread, SLOT(terminate()));
-    QObject::connect(&tcpServerThread, &QThread::finished, &tcpServer, &BackTcpServer::deleteLater);
-    QObject::connect(&tcpServerThread, &QThread::started, &tcpServer, &BackTcpServer::start);
-    tcpServerThread.start();
+    QObject::connect(&app, SIGNAL(aboutToQuit()), &tcpServer, SLOT(terminate()));
+    QObject::connect(&tcpServer, SIGNAL(finished()), &tcpServer, SLOT(deleteLater()));
+    tcpServer.start();
 
     HttpsServer httpsServer(db, &settings);
-    QThread httpsServerThread;
-    httpsServer.moveToThread(&httpsServerThread);
-    QObject::connect(&app, SIGNAL(aboutToQuit()), &httpsServerThread, SLOT(terminate()));
-    QObject::connect(&httpsServerThread, &QThread::finished, &httpsServer, &HttpsServer::deleteLater);
-    QObject::connect(&httpsServerThread, &QThread::started, &httpsServer, &HttpsServer::start);
-    httpsServerThread.start();
+    QObject::connect(&app, SIGNAL(aboutToQuit()), &httpsServer, SLOT(terminate()));
+    QObject::connect(&httpsServer, SIGNAL(finished()), &tcpServer, SLOT(deleteLater()));
+    httpsServer.start();
 
     QThread udpServerThread;
     QObject::connect(&app, SIGNAL(aboutToQuit()), &udpServerThread, SLOT(terminate()));
