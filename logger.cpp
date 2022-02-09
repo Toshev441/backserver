@@ -1,4 +1,4 @@
-#include "loger.h"
+#include "logger.h"
 #include <QMutex>
 #include <QCoreApplication>
 #include <QFileInfo>
@@ -10,32 +10,32 @@ void svcMessageHandler(QtMsgType type, const QMessageLogContext &ctx, const QStr
     switch (type) {
     case QtDebugMsg:
     case QtInfoMsg:
-        loger->write(msg, Loger::INF);
+        logger->write(msg, Logger::INF);
         break;
     case QtWarningMsg:
-        loger->write(msg, Loger::WRN);
+        logger->write(msg, Logger::WRN);
         break;
     case QtFatalMsg:
     case QtCriticalMsg:
-        loger->write(msg, Loger::ERR, QString().number(ctx.line) + " line in " + ctx.file);
+        logger->write(msg, Logger::ERR, QString().number(ctx.line) + " line in " + ctx.file);
         break;
     }
 }
 
 
-Loger applog;
-Loger *loger = &applog;
+Logger applog;
+Logger *logger = &applog;
 
-QMutex Loger::mutex;
-bool Loger::opened = false;
-QFile Loger::f;
+QMutex Logger::mutex;
+bool Logger::opened = false;
+QFile Logger::f;
 
-Loger::Loger(QObject *parent) : QObject(parent)
+Logger::Logger(QObject *parent) : QObject(parent)
 {
 
 }
 
-void Loger::setFilePath(const QString &path)
+void Logger::setFilePath(const QString &path)
 {
     if(opened)
     {
@@ -47,7 +47,7 @@ void Loger::setFilePath(const QString &path)
         filePath = path;
 }
 
-bool Loger::start(const QString path)
+bool Logger::start(const QString path)
 {
     qInstallMessageHandler(svcMessageHandler);
 #ifdef Q_OS_WIN
@@ -66,7 +66,7 @@ bool Loger::start(const QString path)
     return opened;
 }
 
-void Loger::stop()
+void Logger::stop()
 {
     mutex.lock();
     if(opened)
@@ -75,7 +75,7 @@ void Loger::stop()
     mutex.unlock();
 }
 
-void Loger::write(QString msg, Loger::eventType type, QString module)
+void Logger::write(QString msg, Logger::eventType type, QString module)
 {
     mutex.lock();
     if(!opened)
@@ -83,13 +83,13 @@ void Loger::write(QString msg, Loger::eventType type, QString module)
     QString t;
     switch (type)
     {
-    case Loger::INF:
+    case Logger::INF:
         t = "INF";
         break;
-    case Loger::WRN:
+    case Logger::WRN:
         t = "WRN";
         break;
-    case Loger::ERR:
+    case Logger::ERR:
         t = "ERR";
         break;
     }

@@ -6,14 +6,14 @@
 #include <QDateTime>
 #include <QThread>
 #include <QObject>
-#include "loger.h"
+#include "logger.h"
 #include "backtcpserver.h"
 #include "fronthttpsserver.h"
 
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
-//    loger->start();
+//    logger->start();
 #ifdef Q_OS_WIN
     QString s = "\\";
 #else

@@ -1,11 +1,11 @@
-#ifndef LOGER_H
-#define LOGER_H
+#ifndef LOGGER_H
+#define LOGGER_H
 
 #include <QObject>
 #include <QMutex>
 #include <QFile>
 
-class Loger : public QObject
+class Logger : public QObject
 {
     Q_OBJECT
 
@@ -16,12 +16,12 @@ public:
         ERR
     };
 
-    explicit Loger(QObject *parent = nullptr);
+    explicit Logger(QObject *parent = nullptr);
 
     void setFilePath(const QString &path);
     bool start(const QString path = "");
     void stop();
-    void write(QString msg, Loger::eventType type = Loger::ERR, QString module = "");
+    void write(QString msg, Logger::eventType type = Logger::ERR, QString module = "");
 private:
     static QMutex mutex;
     QString filePath;
@@ -31,6 +31,6 @@ signals:
 
 };
 
-extern Loger *loger;
+extern Logger *logger;
 
-#endif // LOGER_H
+#endif // LOGGER_H

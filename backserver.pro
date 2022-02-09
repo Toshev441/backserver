@@ -33,7 +33,7 @@ SOURCES += \
     httpsServer/http_parser.c \
     httpsServer/httpheader.cpp \
     httpsServer/httpsclient.cpp \
-        loger.cpp \
+    logger.cpp \
         main.cpp \
         soft-se/aes.c \
     tcpServer/backtcpserver.cpp \
@@ -53,7 +53,7 @@ HEADERS += \
     httpsServer/http_parser.h \
     httpsServer/httpheader.h \
     httpsServer/httpsclient.h \
-    loger.h \
+    logger.h \
     soft-se/aes.h \
     tcpServer/backtcpserver.h \
     tcpServer/cryptedtcpsocket.h
