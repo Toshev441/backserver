@@ -88,7 +88,7 @@ void ApiSearchApplications::exec()
 
     QString limit = getParam(body, "limit", "0");
     if(limit == "0"){
-        queryString = "SELECT COUNT(*) AS cnt FROM applications WHERE service_ID = '"+rq->pServiceID()+"';";
+        queryString = "SELECT COUNT(*) AS cnt FROM applications WHERE service_GUID = '"+rq->pServiceGUID()+"';";
         int recCount = rq->bBase()->exec(queryString)[0].toObject()["cnt"].toInt();
         if(rq->bBase()->db().lastError().type() != QSqlError::NoError){
             rq->setError(rq->bBase()->db().lastError().text());
@@ -101,13 +101,14 @@ void ApiSearchApplications::exec()
         *rq->pStatus() = HTTP_STATUS_OK;
         return;
     }
-    queryString = "SELECT applications.ID AS id, \
+    queryString = "SELECT applications.GUID AS id, \
 applications.name AS name, \
             applications.description AS description, \
-            applications.service_ID AS serviceID \
+            applications.service_GUID AS serviceID \
             FROM applications \
-            WHERE serviceID = '"+rq->pServiceID()+"' \
-            AND applications.name like '%"+getParam(body, "search")+"%' LIMIT '"+limit+"' OFFSET '"+getParam(body, "offset", "0")+"';";
+            WHERE service_GUID = '"+rq->pServiceGUID()+"' \
+            AND applications.name like '%"+getParam(body, "search")+"%' \
+            LIMIT "+limit+" OFFSET "+getParam(body, "offset", "0")+";";
 
     QJsonArray sqlData = rq->bBase()->exec(queryString);
     if(rq->bBase()->db().lastError().type() != QSqlError::NoError){
@@ -140,12 +141,12 @@ applications.name AS name, \
 void ApiGetApplication::exec()
 {
     QString id = getParam(body, "id");
-   QString queryString = "SELECT applications.ID AS id, \
+   QString queryString = "SELECT applications.GUID AS id, \
 applications.name AS name, \
             applications.description AS description, \
-            applications.service_ID AS serviceID \
+            applications.service_GUID AS serviceID \
             FROM applications \
-            WHERE applications.ID = '"+id+"' AND service_ID = '"+rq->pServiceID()+"';";
+            WHERE applications.GUID = '"+id+"' AND service_GUID = '"+rq->pServiceGUID()+"';";
    qDebug() << queryString;
     QJsonArray sqlData = rq->bBase()->exec(queryString);
     if(rq->bBase()->db().lastError().type() != QSqlError::NoError){
@@ -185,22 +186,22 @@ void ApiCreateApplication::exec()
         *rq->pStatus() = HTTP_STATUS_BAD_REQUEST;
         return;
     }
-    QString serviceID = rq->pServiceID();
-    QString queryString = "SELECT COUNT(*) AS cnt FROM services WHERE ID = '"+serviceID+"';";
+    QString serviceGUID = rq->pServiceGUID();
+    QString queryString = "SELECT COUNT(*) AS cnt FROM services WHERE GUID = '"+serviceGUID+"';";
     if(rq->bBase()->exec(queryString)[0].toObject()["cnt"].toInt() == 0){
-        rq->setError("'"+serviceID + "' - service not found");
+        rq->setError("'"+serviceGUID + "' - service not found");
         *rq->pStatus() = HTTP_STATUS_BAD_REQUEST;
         return;
     }
-    QString uid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    QString guid = QUuid::createUuid().toString(QUuid::WithoutBraces);
     queryString = "\
-INSERT INTO applications (ID, name, description, app_key, service_ID) \
+INSERT INTO applications (GUID, name, description, app_key, service_GUID) \
 VALUES ('"+
-        uid+"', '"+
+        guid+"', '"+
         getParam(body, "name")+"', '"+
         getParam(body, "description")+"', '"+
         getParam(body, "applicationKey")+"', '"+
-        rq->pServiceID()+"');";
+        rq->pServiceGUID()+"');";
 
     rq->bBase()->exec(queryString);
     if(rq->bBase()->db().lastError().type() != QSqlError::NoError){
@@ -209,7 +210,7 @@ VALUES ('"+
         qWarning() << rq->bBase()->db().lastError().text();
         return;
     }
-    rq->pData()->insert("id", uid);
+    rq->pData()->insert("id", guid);
     *rq->pStatus() = HTTP_STATUS_OK;
 }
 
@@ -234,7 +235,7 @@ void ApiUpdateApplication::exec()
     *rq->pData() = QJsonObject();
 
     QString id = getParam(body, "id");
-    QString queryString = "SELECT COUNT(*) AS cnt FROM applications WHERE ID = '"+id+"' AND service_ID = '"+rq->pServiceID()+"';";
+    QString queryString = "SELECT COUNT(*) AS cnt FROM applications WHERE GUID = '"+id+"' AND service_GUID = '"+rq->pServiceGUID()+"';";
     if(rq->bBase()->exec(queryString)[0].toObject()["cnt"].toInt() == 0){
         rq->setError("'"+id + "' - application not found");
         *rq->pStatus() = HTTP_STATUS_BAD_REQUEST;
@@ -248,7 +249,7 @@ void ApiUpdateApplication::exec()
              name = '"+name+"', "+
              "description = '"+description+"', "+
              "app_key = '"+applicationKey+"' "+
-             "WHERE ID = '" +id+"';";
+             "WHERE GUID = '" +id+"';";
     rq->bBase()->exec(queryString);
     if(rq->bBase()->db().lastError().type() != QSqlError::NoError){
         rq->setError(rq->bBase()->db().lastError().text());
@@ -276,15 +277,15 @@ void ApiDeleteApplication::exec()
     *rq->pData() = QJsonObject();
 
     QString id = getParam(body, "id");
-    QString queryString = "SELECT COUNT(*) AS cnt FROM applications WHERE ID = '"+
-            id+"' AND service_ID = '"+
-            rq->pServiceID()+"';";
+    QString queryString = "SELECT COUNT(*) AS cnt FROM applications WHERE GUID = '"+
+            id+"' AND service_GUID = '"+
+            rq->pServiceGUID()+"';";
     if(rq->bBase()->exec(queryString)[0].toObject()["cnt"].toInt() == 0){
         rq->setError("'"+id + "' - application not found");
         *rq->pStatus() = HTTP_STATUS_BAD_REQUEST;
         return;
     }
-    queryString = "DELETE FROM devices WHERE app_ID = '"+id+"';";
+    queryString = "DELETE FROM devices WHERE app_GUID = '"+id+"';";
     rq->bBase()->exec(queryString);
     if(rq->bBase()->db().lastError().type() != QSqlError::NoError){
         rq->setError(rq->bBase()->db().lastError().text());
@@ -292,7 +293,7 @@ void ApiDeleteApplication::exec()
         qWarning() << rq->bBase()->db().lastError().text();
         return;
     }
-    queryString = "DELETE FROM applications WHERE ID = '"+id+"';";
+    queryString = "DELETE FROM applications WHERE GUID = '"+id+"';";
     rq->bBase()->exec(queryString);
     if(rq->bBase()->db().lastError().type() != QSqlError::NoError){
         rq->setError(rq->bBase()->db().lastError().text());

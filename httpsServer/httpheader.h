@@ -1,6 +1,7 @@
 #ifndef HTTPHEADER_H
 #define HTTPHEADER_H
 
+#include <QIODevice>
 #include <QObject>
 #include "http_parser.h"
 
@@ -11,16 +12,15 @@ class HttpHeader : public QObject
 public:
     enum headerType {REQUEST, RESPONSE};
     explicit HttpHeader(http_parser_type headerType, QObject *parent = nullptr);
-    explicit HttpHeader(http_parser_type headerType, QByteArray raw, QObject *parent = nullptr);
 
-    void setData(QByteArray &raw);
+    bool parse(QByteArray &raw);
     enum class Error {
         ok = 0,
         errParseHeader,
         errParseUrl,
     };
 
-    enum class State {
+    enum State {
         NotStarted,
         OnMessageBegin,
         OnUrl,
@@ -49,6 +49,8 @@ public:
     const QString &getUrlPath() const;
     QJsonObject getUrlQuery();
     const QString getHeaderValue(QString field) const;
+
+    State getState() const;
 
 private:
     struct Url{
@@ -81,7 +83,6 @@ private:
 
     void parseUrl();
 
-    QByteArray data;
     http_parser_type hType;
     http_parser parser;
     http_parser_settings  parserSettings {

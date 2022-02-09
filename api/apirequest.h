@@ -13,7 +13,7 @@ class ApiRequest : public QObject
     Q_OBJECT
 public:
     explicit ApiRequest(QSslSocket *socket, HttpHeader *header, DataBase *db, QObject *parent = nullptr);
-    void exec();
+    bool exec();
 
     QJsonObject *pError();
     QJsonObject *pData();
@@ -22,7 +22,7 @@ public:
     QString getUrlParam(QJsonObject &obj, QString key, QString defaultValue = "");
     DataBase *bBase();
     void setError(QString err, int errCode = 0, QJsonArray details = QJsonArray());
-    QString &pServiceID();
+    QString &pServiceGUID();
 private:
     HttpHeader *header;
     DataBase *db;
@@ -30,7 +30,7 @@ private:
     http_status httpStatus;
     QJsonObject httpError;
     QJsonObject httpData;
-    QString serviceID;
+    QString serviceGUID;
     void writeResult();
 signals:
 

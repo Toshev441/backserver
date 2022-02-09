@@ -13,10 +13,10 @@ class BackTcpServer : public QTcpServer
 {
     Q_OBJECT
 public:
-    BackTcpServer(DataBase *db, QSettings *settings, QObject *parent = 0);
+    BackTcpServer(QSqlDatabase *db, QSettings *settings, QObject *parent = 0);
     void start();
 private:
-    DataBase *db;
+    QSqlDatabase *db;
     QTcpServer *tcpServer;
     QSettings *settings;
     QHostAddress host;

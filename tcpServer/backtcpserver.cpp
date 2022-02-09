@@ -5,7 +5,7 @@
 #include <QThread>
 #include <cryptedtcpsocket.h>
 
-BackTcpServer::BackTcpServer(DataBase *db, QSettings *settings, QObject *parent) : QTcpServer(parent)
+BackTcpServer::BackTcpServer(QSqlDatabase *db, QSettings *settings, QObject *parent) : QTcpServer(parent)
 {
     this->db = db;
     this->settings = settings;
@@ -21,10 +21,13 @@ void BackTcpServer::start()
         port = settings->value("tcpserver/port", 26667).toUInt();
         if(this->listen(host, port))
             break;
-        qCritical() << QString("Unable to start the tcpServer: %1.").arg(tcpServer->errorString());
+        qCritical() << QString("Unable to start the tcpServer: %1.").arg(this->errorString());
         QThread::sleep(3000);
     }
-    qInfo() << "----------tcpServer started-------------";
+    qInfo() << " -----------tcpServer started--------------\n" <<
+               "\thost: " << host.toString() << "\n" <<
+               "\tport: " << port << "\n" <<
+               "------------------------------------------";
 }
 
 void BackTcpServer::incomingConnection(qintptr socketDescriptor)

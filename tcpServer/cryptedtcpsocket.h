@@ -18,7 +18,7 @@ class CryptedTcpSocket : public QThread
 {
     Q_OBJECT
 public:
-    explicit CryptedTcpSocket(qintptr ID, DataBase *db, QObject *parent = 0);
+    explicit CryptedTcpSocket(qintptr ID, QSqlDatabase *db, QObject *parent = 0);
     void run();
 
 signals:
@@ -31,10 +31,13 @@ public slots:
 private:
     QTcpSocket *socket;
     qintptr socketDescriptor;
+    QSqlDatabase *existingDB;
     DataBase *db;
     AES_ctx aesCtx;
-    QString ID;
-    QString appID;
+    QString devEUI;
+    QString appKey;
+    QString integrationType;
+    QString integration;
     bool knowClient = false;
 };
 

@@ -6,25 +6,19 @@
 HttpHeader::HttpHeader(http_parser_type headerType, QObject *parent) : QObject(parent)
 {
     hType = headerType;
-}
-
-HttpHeader::HttpHeader(http_parser_type headerType, QByteArray raw, QObject *parent) : QObject(parent)
-{
-    hType = headerType;
-    setData(raw);
-}
-
-void HttpHeader::setData(QByteArray &raw)
-{
-    data = raw;
     parser.data = this;
     http_parser_init(&parser, hType);
-    int s = http_parser_execute(&parser, &parserSettings, data.data(), data.size());
-    if(s < data.size()){
-        error = Error::errParseUrl;
+}
+
+bool HttpHeader::parse(QByteArray &raw)
+{
+    int s = http_parser_execute(&parser, &parserSettings, raw.data(), raw.size());
+    if(s < raw.size()){
+        error = Error::errParseHeader;
         lastError = "Parse header error";
+        return false;
     }
-    parseUrl();
+    return true;
 }
 
 const QString &HttpHeader::getHost() const
@@ -85,7 +79,7 @@ const QString &HttpHeader::getUrlPath() const
 QJsonObject HttpHeader::getUrlQuery()
 {
     QJsonObject obj;
-    QStringList parts = urlQuery.split("&", Qt::SkipEmptyParts);
+    QStringList parts = urlQuery.split("&");
     foreach(auto p , parts){
         QStringList param = p.split("=");
         obj.insert(param[0], param[1]);
@@ -104,6 +98,11 @@ const QString HttpHeader::getHeaderValue(QString field) const
     return "";
 }
 
+HttpHeader::State HttpHeader::getState() const
+{
+    return state;
+}
+
 int HttpHeader::onMessageBegin(http_parser *p)
 {
     HttpHeader *res = static_cast<HttpHeader*>(p->data);
@@ -117,6 +116,7 @@ int HttpHeader::onUrl(http_parser *p, const char *at, size_t length)
     res->url.data = at;
     res->url.size = length;
     res->state = State::OnUrl;
+    res->parseUrl();
     return 0;
 }
 

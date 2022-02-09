@@ -1,4 +1,3 @@
-
 #include <QDebug>
 #include <QFile>
 #include <QJsonArray>
@@ -7,37 +6,89 @@
 #include <QSqlRecord>
 #include <QSqlField>
 #include <QJsonObject>
+#include <QRandomGenerator>
 #include "database.h"
+
+QMutex DataBase::mutex;
 
 DataBase::DataBase(QObject *parent) : QObject(parent)
 {
 
 }
 
-bool DataBase::open(QString driver, QString host, QString dbName, QString user, QString pass, QString dbScript)
+DataBase::DataBase(QSqlDatabase *sqlDataBase, const QString &idConnection, QObject *parent) : QObject(parent)
 {
-    dBase = QSqlDatabase::addDatabase(driver);
-    dBase.setHostName(host);
-    dBase.setUserName(user);
-    dBase.setPassword(pass);
-    bool ok = dBase.open();
-    if(!ok)
-        qWarning() << dBase.lastError().text();
-    if(ok)
-    {
-        QSqlQuery query(dBase);
-        if(driver != "QSQLITE")
-            ok = query.exec("CREATE DATABASE IF NOT EXISTS "+dbName+";");
-        if(!ok)
-            qWarning() << query.lastError().text();
-        else
-        {
-            dBase.setDatabaseName(dbName);
-            ok = dBase.open();
-            if(!ok)
-                qWarning() << dBase.lastError().text();
-        }
+    connections = idConnection;
+    mutex.lock();
+    dBase = new QSqlDatabase(QSqlDatabase::cloneDatabase(*sqlDataBase, connections));
+    if(!dBase->open()){
+        qWarning() << dBase->lastError().text();
+        delete dBase;
+        dBase = nullptr;
     }
+    mutex.unlock();
+}
+
+DataBase::~DataBase()
+{
+    mutex.lock();
+    if(dBase != nullptr){
+        delete dBase;
+        QSqlDatabase::removeDatabase(connections);
+    }
+    mutex.unlock();
+}
+
+const QSqlDatabase &DataBase::db() const
+{
+    return *dBase;
+}
+
+QJsonArray DataBase::exec(const QString &queryString)
+{
+    if(!dBase->isOpen()){
+        qWarning() << "data base not opened!";
+        return QJsonArray();
+    }
+    QJsonArray res;
+    QSqlQuery query = dBase->exec(queryString);
+    if(dBase->lastError().type() != QSqlError::NoError){
+        return res;
+    }
+    if(!query.isSelect()){
+        return res;
+    }
+    while(query.next()){
+        QSqlRecord rec = query.record();
+        QJsonObject obj;
+        for(int i = 0; i < rec.count(); i++){
+            obj.insert(rec.field(i).name(), QJsonValue().fromVariant(rec.field(i).value()));
+        }
+        res.append(obj);
+    }
+    return res;
+}
+
+bool DataBase::checkError(bool debug)
+{
+    bool res = dBase->lastError().type() != QSqlError::NoError;
+    if(debug && res){
+        qWarning() << "DB error: " << dBase->lastError().type() << ", text error: " << dBase->lastError().text();
+    }
+    return res;
+}
+
+QSqlDatabase *connectDataBase(QString driver, QString host, QString dbName, QString user, QString pass, QString dbScript)
+{
+    QSqlDatabase * db = new QSqlDatabase (QSqlDatabase::addDatabase(driver));
+    db->setHostName(host);
+    db->setUserName(user);
+    db->setPassword(pass);
+    if(driver != "QSQLITE")
+        db->setDatabaseName(dbName);
+    bool ok = db->open();
+    if(!ok)
+        qWarning() << db->lastError().text();
     qInfo() << "db connect " << (ok ? "ok":"not ok");
     if(ok)
     {
@@ -50,7 +101,7 @@ bool DataBase::open(QString driver, QString host, QString dbName, QString user, 
         {
             QString strScript = fScript.readAll();
             QStringList tables = strScript.split(";");
-            QSqlQuery query(dBase);
+            QSqlQuery query(*db);
             foreach (QString tab, tables)
             {
                 if (tab.trimmed().isEmpty()) {
@@ -68,34 +119,5 @@ bool DataBase::open(QString driver, QString host, QString dbName, QString user, 
     }
     if(ok)
         qInfo() << "db ready";
-    return ok;
-}
-
-const QSqlDatabase &DataBase::db() const
-{
-    return dBase;
-}
-
-QJsonArray DataBase::exec(QString queryString)
-{
-    QJsonArray res;
-    QSqlQuery query(queryString, dBase);
-    query.exec();
-    if(query.lastError().type() != QSqlError::NoError){
-        return res;
-    }
-    if(!query.isSelect())
-        return res;
-
-    while(query.next()){
-        QSqlRecord rec = query.record();
-        QJsonObject obj;
-        for(int i = 0; i < rec.count(); i++){
-            obj.insert(rec.field(i).name(), QJsonValue().fromVariant(rec.field(i).value()));
-        }
-        res.append(obj);
-    }
-//    if((query.at() <= 0))
-//        return QJsonArray();
-    return res;
+    return db;
 }

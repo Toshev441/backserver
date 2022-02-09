@@ -6,6 +6,8 @@
 #include <QSqlQuery>
 #include <apiapplicationslevel.h>
 #include <apideviceslevel.h>
+#include <apiserviceslevel.h>
+#include <QString>
 
 ApiRequest::ApiRequest(QSslSocket *socket, HttpHeader *header, DataBase *db, QObject *parent) : QObject(parent)
 {
@@ -14,48 +16,49 @@ ApiRequest::ApiRequest(QSslSocket *socket, HttpHeader *header, DataBase *db, QOb
     this->db = db;
 }
 
-void ApiRequest::exec()
+bool ApiRequest::exec()
 {
     if(header->getMethod() != HTTP_POST){
-        setError("POST request support only!");
-        httpStatus = HTTP_STATUS_BAD_REQUEST;
-        writeResult();
-        return;
+        return false;
     }
-    QStringList parts = header->getUrlPath().split("/", Qt::SkipEmptyParts);
+    QStringList parts = header->getUrlPath().split("/", QString::SkipEmptyParts);
     if (parts.count() == 0) {
-        setError(header->getUrlPath() + " - bad url request!");
-        httpStatus = HTTP_STATUS_BAD_REQUEST;
-        writeResult();
-        return;
+        return false;
     }
     if(parts[0].compare("api", Qt::CaseInsensitive) != 0){
-        setError(header->getUrlPath() + " - bad url request!");
-        httpStatus = HTTP_STATUS_BAD_REQUEST;
-        writeResult();
-        return;
+        return false;
     }
-    QString token = header->getHeaderValue("Grpc-Metadata-Authorization");
-    QJsonArray arr = db->exec("SELECT ID FROM services WHERE token = '"+token+"';");
-    if(arr.count() <= 0){
-        setError("wrong token");
-        httpStatus = HTTP_STATUS_BAD_REQUEST;
-        writeResult();
-        return;
-    }
-    serviceID = arr[0].toObject()["ID"].toString();
     QString apiLevel = parts[1].toLower();
-    if(apiLevel == "applications"){
-        ApiApplicationsLevel * apiAppLevel = new ApiApplicationsLevel(this);
+    if(apiLevel == "services"){
+        ApiServicesLevel * apiAppLevel = new ApiServicesLevel(this);
         apiAppLevel->exec();
         delete apiAppLevel;
     }
-    if(apiLevel == "devices"){
-        ApiDevicesLevel * apiAppLevel = new ApiDevicesLevel(this);
-        apiAppLevel->exec();
-        delete apiAppLevel;
+    else
+    {
+        QString token = header->getHeaderValue("Grpc-Metadata-Authorization");
+        QJsonArray arr = db->exec("SELECT GUID FROM services WHERE token = '"+token+"';");
+        if(arr.count() <= 0){
+            setError("wrong token");
+            qDebug() << "wrong";
+            httpStatus = HTTP_STATUS_BAD_REQUEST;
+            writeResult();
+            return true;
+        }
+        serviceGUID = arr[0].toObject()["GUID"].toString();
+        if(apiLevel == "applications"){
+            ApiApplicationsLevel * apiAppLevel = new ApiApplicationsLevel(this);
+            apiAppLevel->exec();
+            delete apiAppLevel;
+        }
+        else if(apiLevel == "devices"){
+            ApiDevicesLevel * apiAppLevel = new ApiDevicesLevel(this);
+            apiAppLevel->exec();
+            delete apiAppLevel;
+        }
     }
     writeResult();
+    return true;
 }
 
 void ApiRequest::writeResult()
@@ -85,9 +88,9 @@ void ApiRequest::setError(QString err, int errCode, QJsonArray details)
     httpError.insert("details", details);
 }
 
-QString &ApiRequest::pServiceID()
+QString &ApiRequest::pServiceGUID()
 {
-    return serviceID;
+    return serviceGUID;
 }
 
 QJsonObject *ApiRequest::pData()
