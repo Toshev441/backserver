@@ -5,9 +5,8 @@
 #include <QThread>
 #include <QFile>
 
-HttpsServer::HttpsServer(QSqlDatabase *db, QSettings *settings, QObject *parent) :  QThread(parent)
+HttpsServer::HttpsServer(QSettings *settings, QObject *parent) :  QThread(parent)
 {
-    this->db = db;
     this->settings = settings;
     connect(&updateSslTimer, SIGNAL(timeout()), this, SLOT(updateSsl()));
     updateSslTimer.start(1000*60*60);
@@ -24,7 +23,7 @@ void HttpsServer::run()
         qCritical() << QString("Unable to start the httpsServer: %1.").arg(tcpServer->errorString());
         QThread::sleep(3);
     }
-    connect(tcpServer, SIGNAL(newConnection()), this, SLOT(onConnect()));
+    connect(tcpServer, SIGNAL(newConnection()), this, SLOT(onConnect()), Qt::DirectConnection);
     connect(this, SIGNAL(finished()), tcpServer, SLOT(deleteLater()));
     updateSsl();
     qInfo() << " ----------httpsServer started-------------\n" <<
@@ -39,8 +38,9 @@ void HttpsServer::onConnect()
 {
     QTcpSocket *socket = tcpServer->nextPendingConnection();
     qintptr ID = socket->socketDescriptor();
-    if(waitSslUpdate(3000)){
-        HttpsClient *client = new HttpsClient(ID, db, &sslConf, this);
+    if(waitSslUpdate(3000))
+    {
+        HttpsClient *client = new HttpsClient(ID, &sslConf);
         connect(client, SIGNAL(finished()), client, SLOT(deleteLater()));
         connect(client, &HttpsClient::disconnect, this, &HttpsServer::onDisconnect, Qt::QueuedConnection);
         clients[ID] = client;

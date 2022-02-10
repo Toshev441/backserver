@@ -26,21 +26,12 @@ osx{
     INCLUDEPATH += /usr/local/opt/openssl/include
 }
 SOURCES += \
-    api/apiapplicationslevel.cpp \
-    api/apideviceslevel.cpp \
-    api/apirequest.cpp \
-    api/apiserviceslevel.cpp \
-        database.cpp \
     httpsServer/http_parser.c \
     httpsServer/httpheader.cpp \
     httpsServer/httpsclient.cpp \
     httpsServer/httpsserver.cpp \
-    integrations/integrations.cpp \
         logger.cpp \
-        main.cpp \
-        soft-se/aes.c \
-    tcpServer/backtcpserver.cpp \
-    tcpServer/cryptedtcpsocket.cpp
+        main.cpp
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -48,19 +39,10 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
-    api/apiapplicationslevel.h \
-    api/apideviceslevel.h \
-    api/apirequest.h \
-    api/apiserviceslevel.h \
-    database.h \
     httpsServer/http_parser.h \
     httpsServer/httpheader.h \
     httpsServer/httpsclient.h \
     httpsServer/httpsserver.h \
-    integrations/integrations.h \
-    logger.h \
-    soft-se/aes.h \
-    tcpServer/backtcpserver.h \
-    tcpServer/cryptedtcpsocket.h
+    logger.h
 
 #QMAKE_POST_LINK += $$(QTDIR)/bin/windeployqt $$OUT_PWD/release --compiler-runtime --qmldir $$PWD $$escape_expand(\n\t)

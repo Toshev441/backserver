@@ -1,13 +1,14 @@
 #ifndef HTTPSCLIENT_H
 #define HTTPSCLIENT_H
 
-#include "database.h"
 #include <QSslSocket>
 #include <QObject>
 #include <QThread>
 #include <QSettings>
 #include <QSslConfiguration>
 #include <QSslKey>
+#include <QList>
+#include <QSslError>
 #include "httpheader.h"
 
 typedef struct SslConf{
@@ -20,7 +21,7 @@ class HttpsClient : public QThread
 {
     Q_OBJECT
 public:
-    explicit HttpsClient(qintptr ID, QSqlDatabase *db, SslConf *conf, QObject *parent = nullptr);
+    explicit HttpsClient(qintptr ID, SslConf *conf, QObject *parent = nullptr);
     void run();
 
 signals:
@@ -30,13 +31,12 @@ signals:
 public slots:
     void readyRead();
     void disconnected();
+    void sslErrors(const QList<QSslError> &errors);
 private:
     QSslSocket *socket;
     SslConf *sslConf;
     qintptr socketDescriptor;
-    QSqlDatabase *existingDB;
     HttpHeader *header;
-    DataBase *db = nullptr;
 };
 
 #endif // HTTPSCLIENT_H

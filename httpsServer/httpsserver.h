@@ -3,7 +3,6 @@
 
 #include <QObject>
 #include <QTcpServer>
-#include "database.h"
 #include <QSettings>
 #include "httpsclient.h"
 #include "QTimer"
@@ -12,10 +11,9 @@ class HttpsServer : public QThread
 {
     Q_OBJECT
 public:
-    explicit HttpsServer(QSqlDatabase *db, QSettings *settings, QObject *parent = 0);
+    explicit HttpsServer(QSettings *settings, QObject *parent = 0);
 private:
     void run();
-    QSqlDatabase *db;
     QTcpServer *tcpServer;
     QSettings *settings;
     QHostAddress host;
