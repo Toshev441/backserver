@@ -40,6 +40,7 @@ public:
     };
 
     const QString &getHost() const;
+    const QString getConnection() const;
     const QByteArray &getBody() const;
     QList<headerItem> *getHeaders();
     const QString &getStatus() const;

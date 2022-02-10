@@ -7,19 +7,19 @@ HttpsClient::HttpsClient(qintptr ID, SslConf *conf, QObject *parent) : QThread(p
 {
     this->socketDescriptor = ID;
     this->sslConf = conf;
+    socket = new QSslSocket();
+    if(!socket->setSocketDescriptor(socketDescriptor))
+    {
+        emit error(socket->error());
+        socket->deleteLater();
+        qWarning() << "error setSocketDescriptor("+QString().number(socketDescriptor)+")";
+        return;
+    }
 }
 
 void HttpsClient::run()
 {
-    socket = new QSslSocket();
-    if(!socket->setSocketDescriptor(this->socketDescriptor))
-    {
-        emit error(socket->error());
-        socket->deleteLater();
-        qWarning() << "error setSocketDescriptor("+QString().number(this->socketDescriptor)+")";
-        return;
-    }
-    //    qDebug() << " Connect client: " << socketDescriptor;
+//        qDebug() << " Connect client: " << socketDescriptor;
     socket->setSslConfiguration(*sslConf->conf);
     socket->setLocalCertificate(*sslConf->cert);
     socket->setPrivateKey(*sslConf->key);
@@ -28,7 +28,7 @@ void HttpsClient::run()
     header = new HttpHeader(HTTP_REQUEST);
     connect(socket, SIGNAL(disconnected()), this, SLOT(disconnected()));
     connect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()), Qt::DirectConnection);
-    connect(socket, SIGNAL(sslErrors()), this, SLOT(sslErrors()));
+    connect(socket, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(sslErrors(QList<QSslError>)));
     if(!socket->waitForEncrypted(3000)) {
         socket->close();
     }
@@ -38,7 +38,7 @@ void HttpsClient::run()
 void HttpsClient::readyRead()
 {
     QByteArray rawData = socket->readAll();
-    //        qInfo() << rawData;
+            qInfo() << rawData;
     if(!header->parse(rawData)){
         qWarning() << "parse http header error - ("
                    << QString().number(static_cast<int>(header->getError()))
@@ -46,8 +46,7 @@ void HttpsClient::readyRead()
         socket->close();
         return;
     }
-    if(header->getState() == HttpHeader::OnMessageComplete){
-
+    if(header->getState() >= HttpHeader::OnMessageComplete){
         QByteArray response;
         response.append(QString("HTTP/1.1 200 OK\r\n").toLocal8Bit());
         response.append(QString("content-type: text/html\r\n").toLocal8Bit());
@@ -61,6 +60,7 @@ void HttpsClient::readyRead()
         qInfo() << "----------------------------------------------------------";
         qInfo() << "\tmethod :" << header->getMethod();
         qInfo() << "\thost :" << header->getHost();
+        qInfo() << "\tconnection :" << header->getConnection();
         qInfo() << "\tbody :" << header->getBody();
         qInfo() << "\tpath :" << header->getUrlPath();
         qInfo() << "\tAuthorization :" << header->getHeaderValue("Grpc-Metadata-Authorization");
@@ -68,7 +68,9 @@ void HttpsClient::readyRead()
         qInfo() << "\tAccept :" << header->getHeaderValue("Accept");
         qInfo() << "----------------------------------------------------------";
         qInfo() << " ";
-        socket->close();
+
+        if(header->getConnection().compare("keep-alive", Qt::CaseInsensitive) != 0)
+            socket->close();
     }
 }
 

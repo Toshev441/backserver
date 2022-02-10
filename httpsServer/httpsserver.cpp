@@ -47,7 +47,7 @@ void HttpsServer::onConnect()
         client->start();
     }
     else
-         socket->close();
+        socket->close();
 }
 
 void HttpsServer::onDisconnect(quint64 ID)
@@ -69,7 +69,7 @@ void HttpsServer::updateSsl()
 {
     sslReady = false;
     sslConfiguration.setPeerVerifyMode(QSslSocket::VerifyNone);
-    QFile certFile(settings->value("httpsserver/cert", "/Users/san/ssl/cert.crt").toString());
+    QFile certFile(settings->value("httpsserver/cert", "cert.crt").toString());
     if(!certFile.open(QIODevice::ReadOnly)){
         qCritical() << certFile.fileName() << " - " << certFile.errorString();
         return;
@@ -77,7 +77,7 @@ void HttpsServer::updateSsl()
     sslCert = QSslCertificate(certFile.readAll());
     certFile.close();
 
-    QFile keyFile(settings->value("httpsserver/privkey", "/Users/san/ssl/key.key").toString());
+    QFile keyFile(settings->value("httpsserver/privkey", "key.key").toString());
     if(!keyFile.open(QIODevice::ReadOnly)){
         qCritical() << keyFile.fileName() << " - " << keyFile.errorString();
         return;

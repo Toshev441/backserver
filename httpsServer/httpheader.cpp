@@ -26,6 +26,11 @@ const QString &HttpHeader::getHost() const
     return host;
 }
 
+const QString HttpHeader::getConnection() const
+{
+    return getHeaderValue("Connection");
+}
+
 const QByteArray &HttpHeader::getBody() const
 {
     return body;
