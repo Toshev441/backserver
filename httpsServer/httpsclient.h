@@ -10,6 +10,7 @@
 #include <QList>
 #include <QSslError>
 #include "httpheader.h"
+#include <QMutex>
 
 typedef struct SslConf{
     QSslConfiguration *conf;
@@ -37,6 +38,7 @@ private:
     SslConf *sslConf;
     qintptr socketDescriptor;
     HttpHeader *header;
+    static QMutex mutex;
 };
 
 #endif // HTTPSCLIENT_H

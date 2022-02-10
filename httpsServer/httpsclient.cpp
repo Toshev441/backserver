@@ -3,22 +3,27 @@
 #include <QNetworkRequest>
 #include <httpheader.h>
 
+QMutex HttpsClient::mutex;
+
 HttpsClient::HttpsClient(qintptr ID, SslConf *conf, QObject *parent) : QThread(parent)
 {
     this->socketDescriptor = ID;
     this->sslConf = conf;
-    socket = new QSslSocket();
-    if(!socket->setSocketDescriptor(socketDescriptor))
-    {
-        emit error(socket->error());
-        socket->deleteLater();
-        qWarning() << "error setSocketDescriptor("+QString().number(socketDescriptor)+")";
-        return;
-    }
 }
 
 void HttpsClient::run()
 {
+    socket = new QSslSocket();
+    mutex.lock();
+    if(!socket->setSocketDescriptor(socketDescriptor))
+    {
+        emit error(socket->error());
+        mutex.unlock();
+        socket->deleteLater();
+        qWarning() << "error setSocketDescriptor("+QString().number(socketDescriptor)+")";
+        return;
+    }
+    mutex.unlock();
 //        qDebug() << " Connect client: " << socketDescriptor;
     socket->setSslConfiguration(*sslConf->conf);
     socket->setLocalCertificate(*sslConf->cert);
